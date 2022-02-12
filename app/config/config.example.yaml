@@ -1,0 +1,23 @@
+---
+databases:
+  mysql:
+    host:
+    user:
+    password:
+    dbname:
+    port:
+jwt:
+  secret:
+  expired:
+encrypt:
+  additional:
+  keystring:
+smtp:
+  sender_name:
+  email:
+  password:
+  host:
+  port:
+server:
+  address:
+    frontend:
