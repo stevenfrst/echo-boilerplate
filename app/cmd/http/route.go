@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"echo-boilerplate/app/cmd/http/middlewares"
 	"echo-boilerplate/factory"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
@@ -23,6 +24,8 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 func InitHttp() {
 	f := factory.InitFactoryHTTP()
 	e := echo.New()
+
+	middlewares.InitMiddleware(e)
 	e.Validator = &CustomValidator{Validator: validator.New()}
 
 	v1 := e.Group("api/v1")
@@ -34,7 +37,7 @@ func InitHttp() {
 	v1.DELETE("/users", f.User.Delete, middleware.JWTWithConfig(f.ConfigJWT))
 	v1.GET("/users", f.User.ListAllUsers)
 
-	v1.GET("/verify",f.User.Verify)
+	v1.GET("/verify", f.User.Verify)
 	err := e.Start(":1234")
 
 	if err != nil {
