@@ -1,6 +1,7 @@
 package delivery
 
 import (
+	"context"
 	"echo-boilerplate/app/cmd/http/middlewares"
 	"echo-boilerplate/delivery"
 	"echo-boilerplate/delivery/user/request"
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/opentracing/opentracing-go"
 	"net/http"
 	"strconv"
 )
@@ -28,7 +30,7 @@ func (d *UserDelivery) Verify(c echo.Context) error {
 	email := c.QueryParam("u")
 	verify := c.QueryParam("v")
 
-	err := d.usecase.VerifyUser(email, verify)
+	err := d.usecase.VerifyUser(c, email, verify)
 	if err != nil {
 		return delivery.ErrorResponse(c, http.StatusInternalServerError, "", err)
 	}
@@ -121,7 +123,7 @@ func (d *UserDelivery) Register(c echo.Context) error {
 		return delivery.ErrorResponse(c, http.StatusBadRequest, "", err)
 	}
 
-	err := d.usecase.Register(req.RegisterToDomain())
+	err := d.usecase.Register(c, req.RegisterToDomain())
 	if err != nil {
 		return delivery.ErrorResponse(c, http.StatusInternalServerError, "", err)
 	}
@@ -129,6 +131,10 @@ func (d *UserDelivery) Register(c echo.Context) error {
 }
 
 func (d *UserDelivery) Login(c echo.Context) error {
+	serverSpan := c.Get("serverSpan").(opentracing.Span)
+	ctx := opentracing.ContextWithSpan(context.Background(), serverSpan)
+	defer ctx.Done()
+
 	req := request.UserLogin{}
 	if err := c.Bind(&req); err != nil {
 		return delivery.ErrorResponse(c, http.StatusBadRequest, "", err)
@@ -137,7 +143,8 @@ func (d *UserDelivery) Login(c echo.Context) error {
 		return delivery.ErrorResponse(c, http.StatusBadRequest, "", err)
 	}
 
-	resp, err := d.usecase.Login(req.Email, req.Password)
+	resp, err := d.usecase.Login(c, req.Email, req.Password)
+	//resp, err := d.usecase.Login(req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, baseErrors.ErrUserInactive) || errors.Is(err, baseErrors.ErrPasswordNotMatch) {
 			return delivery.ErrorResponse(c, http.StatusForbidden, "", err)

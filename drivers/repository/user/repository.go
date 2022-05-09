@@ -2,6 +2,8 @@ package user
 
 import (
 	"echo-boilerplate/usecase/user"
+	"github.com/labstack/echo/v4"
+	"go.elastic.co/apm"
 	"gorm.io/gorm"
 	"log"
 )
@@ -14,7 +16,9 @@ func NewUserRepository(db *gorm.DB) user.IUserRepository {
 	return &repository{Mysql: db}
 }
 
-func (r *repository) GetByEmail(email string) (user.Domain, error) {
+func (r *repository) GetByEmail(c echo.Context, email string) (user.Domain, error) {
+	span, _ := apm.StartSpan(c.Request().Context(), "Repository Layer -> Get Email", "request")
+	defer span.End()
 	model := User{}
 	err := r.Mysql.Find(&model, "email = ?", email)
 	if err.Error != nil {
@@ -23,7 +27,9 @@ func (r *repository) GetByEmail(email string) (user.Domain, error) {
 	return model.ToDomain(), nil
 }
 
-func (r *repository) Create(data user.Domain) error {
+func (r *repository) Create(c echo.Context,data user.Domain) error {
+	span, _ := apm.StartSpan(c.Request().Context(), "Repository Layer -> Create Email", "request")
+	defer span.End()
 	model := FromDomain(data)
 	err := r.Mysql.Create(&model).Error
 	if err != nil {

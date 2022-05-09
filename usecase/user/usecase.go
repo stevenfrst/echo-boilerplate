@@ -6,6 +6,8 @@ import (
 	smtpEmail "echo-boilerplate/helpers/smtp"
 	"echo-boilerplate/utils/baseErrors"
 	"echo-boilerplate/utils/hash"
+	"github.com/labstack/echo/v4"
+	"go.elastic.co/apm"
 	"log"
 )
 
@@ -29,8 +31,11 @@ func (uc *Usecase) Delete(id uint) error {
 	return nil
 }
 
-func (uc *Usecase) Register(user Domain) error {
-	u, err := uc.repo.GetByEmail(user.Email)
+func (uc *Usecase) Register(c echo.Context, user Domain) error {
+	span, _ := apm.StartSpan(c.Request().Context(), "UseCase Layer -> Register", "request")
+	defer span.End()
+
+	u, err := uc.repo.GetByEmail(c, user.Email)
 	if err != nil {
 		return err
 	}
@@ -41,7 +46,7 @@ func (uc *Usecase) Register(user Domain) error {
 	if err != nil {
 		return err
 	}
-	err = uc.repo.Create(user)
+	err = uc.repo.Create(c, user)
 	if err != nil {
 		return err
 	}
@@ -50,7 +55,7 @@ func (uc *Usecase) Register(user Domain) error {
 		<h2>Hello ` + user.Username + `!</h2>
 		Please verify your email with click this link : ` + url +
 		`<br><br>Regards,<br>Boilerplate Admin`
-	err = smtpEmail.SendMail([]string{user.Email}, "Boilerplate: Email Registration Confirm", bodyEmail)
+	err = smtpEmail.SendMail(c, []string{user.Email}, "Boilerplate: Email Registration Confirm", bodyEmail)
 	if err != nil {
 		return err
 	}
@@ -65,8 +70,10 @@ func (uc *Usecase) GetUserByID(id int) (Domain, error) {
 	return resp, nil
 }
 
-func (uc *Usecase) Login(email, password string) (Domain, error) {
-	user, err := uc.repo.GetByEmail(email)
+func (uc *Usecase) Login(c echo.Context, email, password string) (Domain, error) {
+	//func (uc *Usecase) Login(email, password string) (Domain, error) {
+
+	user, err := uc.repo.GetByEmail(c, email)
 	if !hash.CheckPassword(password, user.Password) {
 		return Domain{}, baseErrors.ErrPasswordNotMatch
 	} else if user.IsVerified == false {
@@ -118,12 +125,12 @@ func (uc *Usecase) ListAllUsersVerified(offset, limit int, IsVerified bool) ([]D
 	return resp, nil
 }
 
-func (uc *Usecase) VerifyUser(emailBase64, encrypt string) error {
+func (uc *Usecase) VerifyUser(c echo.Context, emailBase64, encrypt string) error {
 	email, _ := encoder.DecodeEmailVerify(emailBase64, encrypt)
 	if email == "" {
 		return baseErrors.ErrInvalidPayload
 	}
-	u, err := uc.repo.GetByEmail(email)
+	u, err := uc.repo.GetByEmail(c, email)
 	if err != nil {
 		return err
 	}
@@ -137,7 +144,7 @@ func (uc *Usecase) VerifyUser(emailBase64, encrypt string) error {
 	bodyEmail := `
 		<h2>Hello ` + u.Username + `!</h2>
 		Your account has been <font color="green"><b>actived</b></font> :)<br><br>Regards,<br>Boilerplate Admin`
-	err = smtpEmail.SendMail([]string{u.Email}, "Boilerplate: Email Verified!", bodyEmail)
+	err = smtpEmail.SendMail(c, []string{u.Email}, "Boilerplate: Email Verified!", bodyEmail)
 
 	return nil
 }

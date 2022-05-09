@@ -18,6 +18,7 @@ func SetupDatabase() {
 		viper.GetString("databases.mysql.port"),
 		viper.GetString("databases.mysql.dbname"),
 	)
+
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)

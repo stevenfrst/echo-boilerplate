@@ -21,3 +21,13 @@ smtp:
 server:
   address:
     frontend:
+jaeger:
+  Host: 192.168.2.100:6831
+  ServiceName: boilerplate
+  LogSpans: true
+logger:
+  Development: true
+  DisableCaller: false
+  DisableStacktrace: false
+  Encoding: console
+  Level: info
